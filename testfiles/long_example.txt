@@ -1,0 +1,28 @@
+Hello there,
+This is a longer text file for testing purposes.
+You can contact us at example@example.com or call us at 1234567890.
+Another email: test123@test.com
+Another phone number: 0987654321
+
+Here is some more random content to increase the length of this file.
+Feel free to add as much text as you need for your testing.
+
+Email: user1@example.com
+Phone: 1231231234
+
+Email: user2@domain.com
+Phone: 4564564567
+
+Email: user3@sample.org
+Phone: 7897897890
+
+Thanks,
+Test User
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus lacinia odio vitae vestibulum vestibulum. Cras venenatis euismod malesuada. Nulla facilisi. Etiam ut felis ligula. Praesent quis varius nisi. Aliquam erat volutpat. Donec vel metus nec velit vulputate aliquet.
+
+Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Nullam id dolor sed quam fermentum aliquet. Morbi et turpis in urna sagittis dictum. Duis vitae tincidunt ipsum. Fusce nec sapien ac quam tempor hendrerit. Donec at libero a elit convallis cursus.
+
+Ut ut orci in nunc venenatis tincidunt. Integer facilisis malesuada magna, vel ultricies urna bibendum a. Suspendisse potenti. Mauris malesuada massa non vestibulum varius. Cras pharetra lorem at libero vehicula, et feugiat metus faucibus.
+
+Morbi et ipsum id leo scelerisque tincidunt nec eu eros. Integer aliquam lorem sed sapien consequat, non facilisis sapien dapibus. Donec vitae orci nec turpis euismod faucibus. Integer vel lectus nulla. Integer accumsan felis in orci varius, vel egestas mi tincidunt. Quisque ut massa nec erat consequat tincidunt. 
