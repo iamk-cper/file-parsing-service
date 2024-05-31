@@ -61,17 +61,50 @@
             white-space: pre-wrap;
             word-wrap: break-word;
             overflow: auto;
-            max-height: 300px; /* Limit the height of the pre element to make sure it fits on the screen */
+            max-height: 400px;
             margin: 0 auto;
             margin-top: 10px;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            margin-top: 10px;
+        }
+        li {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        }
+        #options-form {
+            display: none;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
         }
     </style>
 </head>
 <body>
-    <h1>Upload a File</h1>
+    <h1>Upload Files</h1>
     <form id="upload-form" enctype="multipart/form-data">
-        <input type="file" id="file-input" name="file" required>
+        <input type="file" id="file-input" name="files" multiple required>
         <button type="submit">Upload</button>
+    </form>
+    <ul id="file-list"></ul>
+    <form id="options-form">
+        <h2>Select Data to Display</h2>
+        <div id="file-options"></div>
+        <button type="submit">Show Data</button>
     </form>
     <pre id="result"></pre>
 
@@ -79,17 +112,78 @@
         document.getElementById('upload-form').addEventListener('submit', async (event) => {
             event.preventDefault();
             const fileInput = document.getElementById('file-input');
+            const fileList = document.getElementById('file-list');
             const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
+            fileList.innerHTML = '';
 
-            const response = await fetch('/uploadfile/', {
+            for (const file of fileInput.files) {
+                formData.append('files', file);
+                const li = document.createElement('li');
+                li.textContent = `Loaded: ${file.name}`;
+                fileList.appendChild(li);
+            }
+
+            const response = await fetch('/uploadfiles/', {
                 method: 'POST',
                 body: formData
             });
 
             const result = await response.json();
             document.getElementById('result').textContent = JSON.stringify(result, null, 2);
+
+            showOptionsForm(result.files);
         });
+
+        function showOptionsForm(files) {
+            const optionsForm = document.getElementById('options-form');
+            const fileOptions = document.getElementById('file-options');
+            fileOptions.innerHTML = '';
+
+            files.forEach(file => {
+                const fileOption = document.createElement('div');
+                fileOption.innerHTML = `
+                    <input type="checkbox" name="files" value="${file.filename}"> ${file.filename}
+                    <br>
+                    <label>
+                        <input type="checkbox" name="data_${file.filename}" value="email"> Email
+                    </label>
+                    <label>
+                        <input type="checkbox" name="data_${file.filename}" value="phone"> Phone
+                    </label>
+                    <label>
+                        <input type="checkbox" name="data_${file.filename}" value="height"> Height
+                    </label>
+                    <label>
+                        <input type="checkbox" name="data_${file.filename}" value="weight"> Weight
+                    </label>
+                `;
+                fileOptions.appendChild(fileOption);
+            });
+
+            optionsForm.style.display = 'block';
+
+            optionsForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const formData = new FormData(optionsForm);
+                const selectedFiles = formData.getAll('files');
+                const selectedData = {};
+
+                selectedFiles.forEach(file => {
+                    selectedData[file] = formData.getAll(`data_${file}`);
+                });
+
+                const response = await fetch('/showdata/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ selectedFiles, selectedData })
+                });
+
+                const result = await response.json();
+                document.getElementById('result').textContent = JSON.stringify(result, null, 2);
+            }, { once: true });
+        }
     </script>
 </body>
 </html>

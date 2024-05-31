@@ -1,1 +1,7 @@
-requirements.txt
+fastapi
+pandas
+uvicorn
+openpyxl
+xlrd
+PyYAML
+beautifulsoup4

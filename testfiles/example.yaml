@@ -1,0 +1,30 @@
+- Email: johndoe@example.com
+  Height: 180
+  Name: John Doe
+  Phone: '123456789'
+  Weight: 75
+- Email: janesmith@example.com
+  Height: 165
+  Name: Jane Smith
+  Phone: '987654321'
+  Weight: 60
+- Email: alicej@example.com
+  Height: 170
+  Name: Alice Johnson
+  Phone: '555666777'
+  Weight: 65
+- Email: bobbrown@example.com
+  Height: 175
+  Name: Bob Brown
+  Phone: '444333222'
+  Weight: 80
+- Email: carolw@example.com
+  Height: 160
+  Name: Carol White
+  Phone: '111222333'
+  Weight: 55
+- Email: davidblack@example.com
+  Height: 185
+  Name: David Black
+  Phone: '999888777'
+  Weight: 90
