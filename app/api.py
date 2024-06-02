@@ -24,7 +24,7 @@ def process_txt(file_content):
     lines = file_content.splitlines()
     words = file_content.split()
     characters = len(file_content)
-    return {"rows": len(lines), "words": len(words), "characters": characters, "email": search_patterns(file_content, [r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'])[r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'], "phone": search_patterns(file_content, [r'\b\d{9}\b'])[r'\b\d{9}\b']}
+    return {"rows": len(lines), "words": len(words), "characters": characters}
 
 
 def process_csv(file_content):
@@ -37,9 +37,7 @@ def process_csv(file_content):
         "columns": df.shape[1],
         "unique_values": unique_values,
         "stats": stats,
-        "characters": characters,
-        "email": search_patterns(file_content, [r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'])[r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'],
-        "phone": search_patterns(file_content, [r'\b\d{9}\b'])[r'\b\d{9}\b']
+        "characters": characters
     }
 
 
@@ -54,8 +52,6 @@ def process_json(file_content):
         "unique_values": unique_values,
         "stats": stats,
         "characters": characters,
-        "email": search_patterns(file_content, [r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'])[r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'],
-        "phone": search_patterns(file_content, [r'\b\d{9}\b'])[r'\b\d{9}\b']
     }
 
 
@@ -92,7 +88,7 @@ def process_html(file_content):
     lines = text.splitlines()
     words = text.split()
     characters = len(text)
-    return {"rows": len(lines), "words": len(words), "characters": characters, "email": search_patterns(text, [r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'])[r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'], "phone": search_patterns(text, [r'\b\d{9}\b'])[r'\b\d{9}\b']}
+    return {"rows": len(lines), "words": len(words), "characters": characters}
 
 
 def process_yaml(file_content):
@@ -106,9 +102,9 @@ def process_yaml(file_content):
 
 def search_patterns(file_content, patterns):
     results = {}
-    for pattern in patterns:
+    for pattern, name in patterns:
         matches = re.findall(pattern, file_content)
-        results[pattern] = matches
+        results[name] = matches
     return results
 
 
@@ -146,7 +142,7 @@ async def upload_files(files: list[UploadFile] = File(...)):
                 raise HTTPException(status_code=400, detail=f"Unsupported file type: {file.content_type}")
 
             if content_str:
-                patterns = [r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', r'\b\d{9}\b']
+                patterns = [(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', 'email'), (r'\b\d{9}\b', 'number')]
                 pattern_matches = search_patterns(content_str, patterns)
                 summary["pattern_matches"] = pattern_matches
 
@@ -167,7 +163,20 @@ async def show_data(request: Request):
         file_summary = next((item for item in uploaded_files if item["filename"] == file_info), None)
         if file_summary:
             data = file_summary['summary']
-            filtered_data = {k: data[k] for k in selected_data[file_info] if k in data}
+            filtered_data = {}
+            include_others = "others" in selected_data[file_info]
+
+            # Explicit categories
+            explicit_categories = ['email', 'number']
+
+            for key, value in data.items():
+                if key in explicit_categories:
+                    if key in selected_data[file_info]:
+                        filtered_data[key] = value
+                elif include_others:
+                    if not any(cat in key for cat in explicit_categories + ['pattern_matches']):
+                        filtered_data[key] = value
+
             results.append({"filename": file_info, "data": filtered_data})
 
     return JSONResponse(content={"results": results})
