@@ -1,35 +1,38 @@
-Name: John Doe
-Email: johndoe@example.com
-Phone: 166717717
-Height: 180
-Weight: 75
-
-Name: Jane Smith
-Email: janesmith@example.com
-Phone: 987654321
-Height: 165
-Weight: 60
-
-Name: Alice Johnson
-Email: alicej@example.com
-Phone: 333333333
-Height: 170
-Weight: 65
-
-Name: Bob Brown
-Email: bobbrown@example.com
-Phone: 444333222
-Height: 175
-Weight: 80
-
-Name: Carol White
-Email: carolw@example.com
-Phone: 111222333
-Height: 160
-Weight: 55
-
-Name: David Black
-Email: davidblack@example.com
-Phone: 999888777
-Height: 185
-Weight: 90
+# HELP python_gc_objects_collected_total Objects collected during gc
+# TYPE python_gc_objects_collected_total counter
+python_gc_objects_collected_total{generation="0"} 2407.0
+python_gc_objects_collected_total{generation="1"} 2547.0
+python_gc_objects_collected_total{generation="2"} 2043.0
+# HELP python_gc_objects_uncollectable_total Uncollectable objects found during GC
+# TYPE python_gc_objects_uncollectable_total counter
+python_gc_objects_uncollectable_total{generation="0"} 0.0
+python_gc_objects_uncollectable_total{generation="1"} 0.0
+python_gc_objects_uncollectable_total{generation="2"} 0.0
+# HELP python_gc_collections_total Number of times this generation was collected
+# TYPE python_gc_collections_total counter
+python_gc_collections_total{generation="0"} 252.0
+python_gc_collections_total{generation="1"} 22.0
+python_gc_collections_total{generation="2"} 2.0
+# HELP file_processing_duration_seconds Time spent processing files
+# TYPE file_processing_duration_seconds summary
+file_processing_duration_seconds_count 6.0
+file_processing_duration_seconds_sum 0.034317900019232184
+# HELP file_processing_time_seconds Histogram of file processing times
+# TYPE file_processing_time_seconds histogram
+file_processing_time_seconds_bucket{le="0.005"} 0.0
+file_processing_time_seconds_bucket{le="0.01"} 0.0
+file_processing_time_seconds_bucket{le="0.025"} 0.0
+file_processing_time_seconds_bucket{le="0.05"} 0.0
+file_processing_time_seconds_bucket{le="0.075"} 0.0
+file_processing_time_seconds_bucket{le="0.1"} 0.0
+file_processing_time_seconds_bucket{le="0.25"} 0.0
+file_processing_time_seconds_bucket{le="0.5"} 0.0
+file_processing_time_seconds_bucket{le="0.75"} 0.0
+file_processing_time_seconds_bucket{le="1.0"} 0.0
+file_processing_time_seconds_bucket{le="2.5"} 0.0
+file_processing_time_seconds_bucket{le="5.0"} 0.0
+file_processing_time_seconds_bucket{le="7.5"} 0.0
+file_processing_time_seconds_bucket{le="10.0"} 0.0
+file_processing_time_seconds_bucket{le="+Inf"} 0.0
+file_processing_time_seconds_count 0.0
+file_processing_time_seconds_sum 0.0
