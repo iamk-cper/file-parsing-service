@@ -53,7 +53,6 @@
         }
         ul, li {
             list-style: none;
-            padding: 0;
             margin-top: 10px;
             background-color: #fff;
             border: 1px solid #ddd;
@@ -149,66 +148,79 @@
             showOptionsForm(result.files);
         });
 
-function showOptionsForm(files) {
-    const optionsForm = document.getElementById('options-form');
-    const fileOptions = document.getElementById('file-options');
-    fileOptions.innerHTML = '';
+        function showOptionsForm(files) {
+            const optionsForm = document.getElementById('options-form');
+            const fileOptions = document.getElementById('file-options');
+            fileOptions.innerHTML = '';
 
-    files.forEach(file => {
-        const fileSummary = file.summary;
-        const patternMatches = fileSummary.pattern_matches;
+            files.forEach(file => {
+                const fileSummary = file.summary;
+                const patternMatches = fileSummary.pattern_matches;
 
-        const fileOption = document.createElement('div');
-        fileOption.innerHTML = `
-            <input type="checkbox" name="files" value="${file.filename}"> ${file.filename}
-            <br>
-            <label>
-                <input type="checkbox" name="data_${file.filename}" value="email"> Emails (${patternMatches.email ? patternMatches.email.length : 0} found)
-            </label>
-            <label>
-                <input type="checkbox" name="data_${file.filename}" value="number"> Phone Numbers (${patternMatches.number ? patternMatches.number.length : 0} found)
-            </label>
-            <label>
-                <input type="checkbox" name="data_${file.filename}" value="others"> Others (All other data)
-            </label>
-        `;
-        fileOptions.appendChild(fileOption);
-    });
-
-    optionsForm.style.display = 'block';
-
-    optionsForm.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const formData = new FormData(optionsForm);
-        const selectedFiles = formData.getAll('files');
-        const results = [];
-
-        selectedFiles.forEach(file => {
-            const dataTypes = formData.getAll(`data_${file}`);
-            const fileData = files.find(f => f.filename === file);
-            const dataToDisplay = {};
-
-            dataTypes.forEach(type => {
-                if (type === 'others') {
-                    Object.keys(fileData.summary).forEach(key => {
-                        if (key !== 'pattern_matches' && key !== 'email' && key !== 'number') {
-                            dataToDisplay[key] = fileData.summary[key];
-                        }
-                    });
-                } else if (fileData.summary.pattern_matches && fileData.summary.pattern_matches[type]) {
-                    dataToDisplay[type] = fileData.summary.pattern_matches[type];
-                }
+                const fileOption = document.createElement('div');
+                fileOption.innerHTML = `
+                    <input type="checkbox" name="files" value="${file.filename}"> ${file.filename}
+                    <br>
+                    <label>
+                        <input type="checkbox" name="data_${file.filename}" value="email"> Emails (${patternMatches.email ? patternMatches.email.length : 0} found)
+                    </label>
+                    <label>
+                        <input type="checkbox" name="data_${file.filename}" value="number"> Phone Numbers (${patternMatches.number ? patternMatches.number.length : 0} found)
+                    </label>
+                    <label>
+                        <input type="checkbox" name="data_${file.filename}" value="others"> Others (All other data)
+                    </label>
+                `;
+                fileOptions.appendChild(fileOption);
             });
 
-            if (Object.keys(dataToDisplay).length > 0) {
-                results.push({ filename: file, data: dataToDisplay });
-            }
-        });
+            optionsForm.style.display = 'block';
 
-        document.getElementById('result').textContent = JSON.stringify(results, null, 2);
-    });
-}
+            optionsForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const formData = new FormData(optionsForm);
+                const selectedFiles = formData.getAll('files');
+                const globalData = formData.getAll('global_data');
+                const results = [];
 
+                // Fetch and combine global data if selected
+                if (globalData.length > 0) {
+                    const globalResults = {};
+                    for (const type of globalData) {
+                        const dataType = type === 'all_mails' ? 'emails' : 'phone_numbers';
+                        const response = await fetch(`/global_data/?data_type=${dataType}`);
+                        const result = await response.json();
+                        globalResults[dataType] = result[dataType];
+                    }
+                    results.push({ filename: 'global', data: globalResults });
+                }
+
+                // Process selected files
+                selectedFiles.forEach(file => {
+                    const dataTypes = formData.getAll(`data_${file}`);
+                    const fileData = files.find(f => f.filename === file);
+                    const dataToDisplay = {};
+
+                    dataTypes.forEach(type => {
+                        if (type === 'others') {
+                            Object.keys(fileData.summary).forEach(key => {
+                                if (key !== 'pattern_matches' && key !== 'email' && key !== 'number') {
+                                    dataToDisplay[key] = fileData.summary[key];
+                                }
+                            });
+                        } else if (fileData.summary.pattern_matches && fileData.summary.pattern_matches[type]) {
+                            dataToDisplay[type] = fileData.summary.pattern_matches[type];
+                        }
+                    });
+
+                    if (Object.keys(dataToDisplay).length > 0) {
+                        results.push({ filename: file, data: dataToDisplay });
+                    }
+                });
+
+                document.getElementById('result').textContent = JSON.stringify(results, null, 2);
+            });
+        }
 
     </script>
 </body>
