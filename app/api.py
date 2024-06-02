@@ -9,6 +9,7 @@ from pathlib import Path
 import openpyxl
 import xlrd
 import yaml
+from bs4 import BeautifulSoup
 
 app = FastAPI()
 
@@ -20,24 +21,20 @@ static_path = project_root / "static"
 app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
 
 
-def process_txt(file_content):
-    lines = file_content.splitlines()
-    words = file_content.split()
-    characters = len(file_content)
-    return {"rows": len(lines), "words": len(words), "characters": characters}
-
-
 def process_csv(file_content):
     df = pd.read_csv(io.StringIO(file_content))
     unique_values = {column: df[column].unique().tolist() for column in df.columns}
     stats = df.describe().to_dict()
     characters = len(file_content)
+    # Calculating words by joining all cell values and splitting into words
+    words = ' '.join(df.astype(str).values.flatten()).split()
     return {
+        "characters": characters,
         "rows": df.shape[0],
+        "words": len(words),
         "columns": df.shape[1],
         "unique_values": unique_values,
-        "stats": stats,
-        "characters": characters
+        "stats": stats
     }
 
 
@@ -46,64 +43,86 @@ def process_json(file_content):
     unique_values = {column: df[column].unique().tolist() for column in df.columns}
     stats = df.describe().to_dict()
     characters = len(file_content)
+    # Calculating words by joining all cell values and splitting into words
+    words = ' '.join(df.astype(str).values.flatten()).split()
     return {
+        "characters": characters,
         "rows": df.shape[0],
+        "words": len(words),
         "columns": df.shape[1],
         "unique_values": unique_values,
-        "stats": stats,
-        "characters": characters,
+        "stats": stats
     }
+
+
+def process_file(file_content):
+    lines = file_content.splitlines()
+    words = file_content.split()
+    characters = len(file_content)
+    return {
+        "characters": characters,
+        "rows": len(lines),
+        "words": len(words)
+        }
 
 
 def process_xml(file_content):
     tree = ET.ElementTree(ET.fromstring(file_content))
-    root = tree.getroot()
-    data = [{elem.tag: elem.text for elem in child} for child in root]
-    characters = len(file_content)
+    data = [{elem.tag: elem.text for elem in child} for child in tree.getroot()]
+
     return {
-        "elements": len(root),
-        "data": data,
-        "characters": characters
+        **process_file(file_content),
+        "data": data
     }
 
-
-def process_excel(file_content):
-    df = pd.read_excel(io.BytesIO(file_content))
-    unique_values = {column: df[column].unique().tolist() for column in df.columns}
-    stats = df.describe().to_dict()
-    characters = len(file_content)
-    return {
-        "rows": df.shape[0],
-        "columns": df.shape[1],
-        "unique_values": unique_values,
-        "stats": stats,
-        "characters": characters
-    }
 
 
 def process_html(file_content):
-    from bs4 import BeautifulSoup
     soup = BeautifulSoup(file_content, 'html.parser')
+    visible_text = soup.get_text()
+    visible_lines = visible_text.splitlines()
+    visible_words = visible_text.split()
+
     text = soup.get_text()
-    lines = text.splitlines()
-    words = text.split()
-    characters = len(text)
-    return {"rows": len(lines), "words": len(words), "characters": characters}
+    return {
+        **process_file(file_content),
+        "visible_characters": len(visible_text),  # Characters in visible text
+        "visible_rows": len(visible_lines),  # Lines in visible text
+        "visible_words": len(visible_words)  # Words in visible text
+    }
 
 
 def process_yaml(file_content):
     data = yaml.safe_load(file_content)
-    characters = len(file_content)
+
     return {
-        "data": data,
-        "characters": characters
+        **process_file(file_content),
+        "data": data
     }
+
 
 
 def search_patterns(file_content, patterns):
     results = {}
     for pattern, name in patterns:
         matches = re.findall(pattern, file_content)
+        results[name] = matches
+    return results
+
+
+# Global storage for emails and phone numbers
+all_emails = set()
+all_phone_numbers = set()
+
+def search_patterns(file_content, patterns):
+    global all_emails, all_phone_numbers
+    results = {}
+    for pattern, name in patterns:
+        matches = re.findall(pattern, file_content)
+        if name == 'email':
+            all_emails.update(matches)
+        elif name == 'number':
+            all_phone_numbers.update(matches)
         results[name] = matches
     return results
 
@@ -120,7 +139,7 @@ async def upload_files(files: list[UploadFile] = File(...)):
 
             if file.content_type == 'text/plain':
                 content_str = content.decode('utf-8')
-                summary = process_txt(content_str)
+                summary = process_file(content_str)
             elif file.content_type == 'text/csv':
                 content_str = content.decode('utf-8')
                 summary = process_csv(content_str)
@@ -130,8 +149,6 @@ async def upload_files(files: list[UploadFile] = File(...)):
             elif file.content_type == 'application/xml' or file.content_type == 'text/xml':
                 content_str = content.decode('utf-8')
                 summary = process_xml(content_str)
-            elif file.content_type == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' or file.content_type == 'application/vnd.ms-excel':
-                summary = process_excel(content)
             elif file.content_type == 'application/x-yaml' or file.content_type == 'text/yaml' or file.content_type == 'application/octet-stream':
                 content_str = content.decode('utf-8')
                 summary = process_yaml(content_str)

@@ -1,6 +1,6 @@
 Name: John Doe
 Email: johndoe@example.com
-Phone: 123456789
+Phone: 166717717
 Height: 180
 Weight: 75
 
@@ -12,7 +12,7 @@ Weight: 60
 
 Name: Alice Johnson
 Email: alicej@example.com
-Phone: 555666777
+Phone: 333333333
 Height: 170
 Weight: 65
 
