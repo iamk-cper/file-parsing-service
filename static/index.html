@@ -12,32 +12,33 @@
             padding: 20px;
             display: flex;
             justify-content: center;
-            align-items: flex-start;
+            align-items: center;
             flex-direction: column;
             min-height: 100vh;
-            box-sizing: border-box;
         }
-        h1 {
+        h1, h2 {
             color: #555;
-            margin-bottom: 20px;
             text-align: center;
             width: 100%;
         }
-        #upload-form {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        .centered-container {
             display: flex;
             flex-direction: column;
             align-items: center;
             width: 100%;
             max-width: 600px;
-            margin: 0 auto;
         }
-        #file-input {
-            margin-bottom: 10px;
+        #upload-form, #options-form {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             width: 100%;
+            margin-top: 20px;
+        }
+        input[type="file"], button, #file-options {
+            width: 100%;
+            margin: 10px 0;
         }
         button {
             background-color: #4CAF50;
@@ -50,77 +51,94 @@
         button:hover {
             background-color: #45a049;
         }
+        ul, li {
+            list-style: none;
+            padding: 0;
+            margin-top: 10px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
         pre {
-            margin-top: 20px;
             padding: 10px;
             background-color: #f8f8f8;
             border: 1px solid #ddd;
             border-radius: 5px;
-            width: 100%;
-            max-width: 600px;
-            white-space: pre-wrap;
-            word-wrap: break-word;
             overflow: auto;
             max-height: 400px;
-            margin: 0 auto;
-            margin-top: 10px;
-        }
-        ul {
-            list-style-type: none;
-            padding: 0;
             width: 100%;
-            max-width: 600px;
-            margin: 0 auto;
             margin-top: 10px;
         }
-        li {
-            background-color: #fff;
-            border: 1px solid #ddd;
+        #file-options div {
+            text-align: center; /* Center the checkboxes and labels */
+        }
+        #global-options {
+            margin-top: 10px;
             padding: 10px;
-            margin: 5px 0;
+            background-color: #f0f0f0;  /* Light grey background for distinction */
             border-radius: 5px;
-            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
         }
-        #options-form {
-            display: none;
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            margin-top: 20px;
-            width: 100%;
-            max-width: 600px;
-            margin: 0 auto;
-        }
+
     </style>
 </head>
 <body>
-    <h1>Upload Files</h1>
-    <form id="upload-form" enctype="multipart/form-data">
-        <input type="file" id="file-input" name="files" multiple required>
-        <button type="submit">Upload</button>
-    </form>
-    <ul id="file-list"></ul>
-    <form id="options-form">
-        <h2>Select Data to Display</h2>
-        <div id="file-options"></div>
-        <button type="submit">Show Data</button>
-    </form>
-    <pre id="result"></pre>
+    <div class="centered-container">
+        <h1>Upload Files</h1>
+        <form id="upload-form" enctype="multipart/form-data">
+            <input type="file" id="file-input" name="files" multiple required>
+            <button type="submit">Upload</button>
+        </form>
+        <ul id="file-list"><li>No loaded files</li></ul>
+        <form id="options-form">
+            <h2>Select Data to Display</h2>
+            <div id="file-options"></div>
+            <div id="global-options">
+                <label>
+                    <input type="checkbox" name="global_data" value="all_emails"> All Emails
+                </label>
+                <label>
+                    <input type="checkbox" name="global_data" value="all_phones"> All Phone Numbers
+                </label>
+            </div>
+            <button type="submit">Show Data</button>
+            <button type="button" id="download-data">Download Data</button>
+
+        </form>
+        <pre id="result"></pre>
+    </div>
 
     <script>
+        document.getElementById('download-data').addEventListener('click', function() {
+            const data = document.getElementById('result').textContent;
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'downloaded_data.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        });
+
         document.getElementById('upload-form').addEventListener('submit', async (event) => {
             event.preventDefault();
             const fileInput = document.getElementById('file-input');
             const fileList = document.getElementById('file-list');
             const formData = new FormData();
-            fileList.innerHTML = '';
+            fileList.innerHTML = '';  // Clear initial "No loaded files" text
 
-            for (const file of fileInput.files) {
-                formData.append('files', file);
-                const li = document.createElement('li');
-                li.textContent = `Loaded: ${file.name}`;
-                fileList.appendChild(li);
+            if (fileInput.files.length === 0) {
+                fileList.innerHTML = '<li>No loaded files</li>';
+            } else {
+                for (const file of fileInput.files) {
+                    formData.append('files', file);
+                    const li = document.createElement('li');
+                    li.textContent = `Loaded: ${file.name}`;
+                    fileList.appendChild(li);
+                }
             }
 
             const response = await fetch('/uploadfiles/', {
@@ -182,7 +200,7 @@
 
                 const result = await response.json();
                 document.getElementById('result').textContent = JSON.stringify(result, null, 2);
-            }, { once: true });
+            });
         }
     </script>
 </body>
