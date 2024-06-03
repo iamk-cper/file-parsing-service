@@ -147,51 +147,92 @@ The File Parsing Service collects and exposes several key metrics to provide ins
 These metrics help monitor and analyze the performance and health of the File Parsing Service, ensuring it operates efficiently and effectively.
 
 
-## Usage
-### API Endpoints
+## API requests
+TBD - problems with curl, for example currently doesn't handle loading more than one file (works well in POSTMAN anyway)
+
 - **Upload File**
-  - **Endpoint**: `/upload`
+  - **Endpoint**: `/uploadfiles`
   - **Method**: `POST`
   - **Description**: Upload a file for parsing.
-  - **Example**:
-    ```bash
-    curl -X POST -F 'file=@/path/to/your/file.csv' http://localhost:8000/upload
-    ```
+  - **Details**:
+       in Body, form-data pairs: 'files', <file.xx>
 
-- **Parse File**
-  - **Endpoint**: `/parse`
+- **Show global data**
+  - **Endpoint**: `/global_data/?data_type=<type>`, where <type> is emails/phone_numbers
   - **Method**: `POST`
-  - **Description**: Parse an uploaded file.
-  - **Example**:
-    ```bash
-    curl -X POST -H "Content-Type: application/json" -d '{"file_id": "12345"}' http://localhost:8000/parse
-    ```
+  - **Description**: Shows all emails/phone numbers from loaded files.
 
-- **Retrieve Data**
-  - **Endpoint**: `/data`
-  - **Method**: `GET`
-  - **Description**: Retrieve parsed data.
-  - **Example**:
-    ```bash
-    curl -X GET http://localhost:8000/data?file_id=12345
-    ```
+- **Show selected data**
+  - **Endpoint**: `/showdata`
+  - **Method**: `POST`
+  - **Description**: Show email/phone/other selected data from selected files.
+  - **Details**:
+       in Body, 'raw' JSON:
+    {
+        "selectedFiles": ["file1.txt", "file2.csv"],
+        "selectedData": {
+          "file1.txt": ["email", "number", "others"],
+          "file2.csv": ["email"]
+        }
+      }
 
-## Script usage example
+## API requests usage example
 ```python
 import requests
+import os
 
-# Upload file
-with open('data.csv', 'rb') as f:
-    response = requests.post('http://localhost:8000/upload', files={'file': f})
-file_id = response.json()['file_id']
+# Define the URL for the file upload endpoint
+upload_url = 'http://localhost:8000/uploadfiles/'
 
-# Parse file
-response = requests.post('http://localhost:8000/parse', json={'file_id': file_id})
+# Path to the file you want to upload (assuming it's in the current directory)
+file_path = os.path.join(os.getcwd(), 'example.txt')
 
-# Retrieve parsed data
-response = requests.get(f'http://localhost:8000/data?file_id={file_id}')
-data = response.json()
-print(data)
+# Check if the file exists in the current directory
+if not os.path.exists(file_path):
+    print(f"The file {file_path} does not exist.")
+else:
+    # Open the file in binary mode and send it in the request
+    with open(file_path, 'rb') as file:
+        files = {'files': ('example.txt', file, 'text/plain')}
+        response = requests.post(upload_url, files=files)
+
+    # Print the response from the server
+    print('Upload Response Status Code:', response.status_code)
+    upload_response = response.json()
+    print('Upload Response JSON:', upload_response)
+
+# Extract the filename from the upload response
+uploaded_file = upload_response['files'][0]['filename']
+
+# Define the URL for the showdata endpoint
+showdata_url = 'http://localhost:8000/showdata/'
+
+# Prepare the payload for the showdata request
+showdata_payload = {
+    "selectedFiles": [uploaded_file],
+    "selectedData": {
+        uploaded_file: ["email", "number", "others"]
+    }
+}
+
+# Make the request to the showdata endpoint
+showdata_response = requests.post(showdata_url, json=showdata_payload)
+print('Showdata Response Status Code:', showdata_response.status_code)
+print('Showdata Response JSON:', showdata_response.json())
+
+# Define the URL for the global_data endpoint
+global_data_url = 'http://localhost:8000/global_data/'
+
+# Request global emails data
+global_emails_response = requests.get(global_data_url, params={"data_type": "emails"})
+print('Global Emails Response Status Code:', global_emails_response.status_code)
+print('Global Emails Response JSON:', global_emails_response.json())
+
+# Request global phone numbers data
+global_phones_response = requests.get(global_data_url, params={"data_type": "phone_numbers"})
+print('Global Phones Response Status Code:', global_phones_response.status_code)
+print('Global Phones Response JSON:', global_phones_response.json())
+
 ```
 
 
