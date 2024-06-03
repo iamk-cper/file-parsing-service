@@ -25,6 +25,7 @@ class DataStore:
     def __init__(self):
         self.emails = set()
         self.phone_numbers = set()
+        self.uploaded_files = []
 
     def add_emails(self, email_list):
         self.emails.update(email_list)
@@ -38,8 +39,19 @@ class DataStore:
     def get_phone_numbers(self):
         return list(self.phone_numbers)
 
+    def add_uploaded_file(self, file_summary):
+        self.uploaded_files.append(file_summary)
+
+    def get_uploaded_files(self):
+        return self.uploaded_files
+
+    def clear_uploaded_files(self):
+        self.uploaded_files = []
+
 # Instantiate the datastore as a global variable
 data_store = DataStore()
+
+
 
 # Dependency provider function
 def get_data_store():
@@ -145,6 +157,9 @@ def search_patterns(file_content, patterns, store):
 
 @app.post("/uploadfiles/")
 async def upload_files(files: list[UploadFile] = File(...), store: DataStore = Depends(get_data_store)):
+    # Clear old files from the datastore
+    store.clear_uploaded_files()
+
     # Track the number of files in the current upload
     num_files = len(files)
     last_upload_file_count.set(num_files)
@@ -153,7 +168,6 @@ async def upload_files(files: list[UploadFile] = File(...), store: DataStore = D
     total_processing_duration = 0
 
     files_in_progress.set(num_files)
-    uploaded_files = []
     try:
         for file in files:
             content = await file.read()
@@ -184,7 +198,7 @@ async def upload_files(files: list[UploadFile] = File(...), store: DataStore = D
                 pattern_matches = search_patterns(content_str, patterns, store)
                 summary["pattern_matches"] = pattern_matches
 
-                uploaded_files.append({"filename": file.filename, "summary": summary})
+                store.add_uploaded_file({"filename": file.filename, "summary": summary})
 
                 files_processed.inc()
             except Exception as e:
@@ -201,14 +215,12 @@ async def upload_files(files: list[UploadFile] = File(...), store: DataStore = D
         # Set the last upload processing duration metric
         last_upload_processing_duration.set(total_processing_duration)
 
-        return JSONResponse(content={"files": uploaded_files})
+        return JSONResponse(content={"files": store.get_uploaded_files()})
     except Exception as e:
         processing_errors.inc()
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         files_in_progress.set(0)
-
-
 
 @app.post("/showdata/")
 async def show_data(request: Request, store: DataStore = Depends(get_data_store)):
@@ -218,7 +230,7 @@ async def show_data(request: Request, store: DataStore = Depends(get_data_store)
 
     results = []
     for file_info in selected_files:
-        file_summary = next((item for item in uploaded_files if item["filename"] == file_info), None)
+        file_summary = next((item for item in store.get_uploaded_files() if item["filename"] == file_info), None)
         if file_summary:
             data = file_summary['summary']
             filtered_data = {}
@@ -227,9 +239,11 @@ async def show_data(request: Request, store: DataStore = Depends(get_data_store)
             explicit_categories = ['email', 'number']
 
             for key, value in data.items():
-                if key in explicit_categories:
-                    if key in selected_data[file_info]:
-                        filtered_data[key] = value
+                if key == "pattern_matches":
+                    pattern_data = data["pattern_matches"]
+                    for pattern_key, pattern_value in pattern_data.items():
+                        if pattern_key in explicit_categories and pattern_key in selected_data[file_info]:
+                            filtered_data[pattern_key] = pattern_value
                 elif include_others:
                     if not any(cat in key for cat in explicit_categories + ['pattern_matches']):
                         filtered_data[key] = value
@@ -237,6 +251,7 @@ async def show_data(request: Request, store: DataStore = Depends(get_data_store)
             results.append({"filename": file_info, "data": filtered_data})
 
     return JSONResponse(content={"results": results})
+
 
 @app.get("/global_data/")
 async def get_global_data(data_type: str, store: DataStore = Depends(get_data_store)):

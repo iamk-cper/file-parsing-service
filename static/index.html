@@ -181,6 +181,12 @@
                 const formData = new FormData(optionsForm);
                 const selectedFiles = formData.getAll('files');
                 const globalData = formData.getAll('global_data');
+                const selectedData = {};
+
+                selectedFiles.forEach(file => {
+                    selectedData[file] = formData.getAll(`data_${file}`);
+                });
+
                 const results = [];
 
                 // Fetch and combine global data if selected
@@ -196,32 +202,20 @@
                 }
 
                 // Process selected files
-                selectedFiles.forEach(file => {
-                    const dataTypes = formData.getAll(`data_${file}`);
-                    const fileData = files.find(f => f.filename === file);
-                    const dataToDisplay = {};
-
-                    dataTypes.forEach(type => {
-                        if (type === 'others') {
-                            Object.keys(fileData.summary).forEach(key => {
-                                if (key !== 'pattern_matches' && key !== 'email' && key !== 'number') {
-                                    dataToDisplay[key] = fileData.summary[key];
-                                }
-                            });
-                        } else if (fileData.summary.pattern_matches && fileData.summary.pattern_matches[type]) {
-                            dataToDisplay[type] = fileData.summary.pattern_matches[type];
-                        }
-                    });
-
-                    if (Object.keys(dataToDisplay).length > 0) {
-                        results.push({ filename: file, data: dataToDisplay });
-                    }
+                const response = await fetch('/showdata/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ selectedFiles, selectedData })
                 });
+
+                const result = await response.json();
+                results.push(...result.results);
 
                 document.getElementById('result').textContent = JSON.stringify(results, null, 2);
             });
         }
-
     </script>
 </body>
 </html>
