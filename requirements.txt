@@ -1,7 +1,10 @@
 fastapi
 pandas
 uvicorn
+beautifulsoup4
+lxml
+PyYAML
+prometheus_client
+starlette
 openpyxl
 xlrd
-PyYAML
-beautifulsoup4
